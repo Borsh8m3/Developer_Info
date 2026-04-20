@@ -5,6 +5,17 @@ This project is a comprehensive machine learning tool designed to predict proper
 
 Aby uruchomić projekt lokalnie, upewnij się, że masz zainstalowanego Pythona w wersji 3.10 lub nowszej.
 
+# Technologie
+Python 3.10+
+
+Streamlit (Frontend i interfejs użytkownika)
+
+XGBoost (Silnik predykcyjny)
+
+Folium (Obsługa mapy)
+
+Pandas & Joblib (Przetwarzanie danych i serializacja modelu)
+
 # Sklonuj repozytorium:
 
 Bash
