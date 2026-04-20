@@ -33,7 +33,7 @@ with st.sidebar:
     rynek = st.selectbox("Rynek", [0, 1], format_func=lambda x: "Pierwotny" if x==1 else "Wtórny")
     sprzedajacy = st.selectbox("Sprzedający", [0, 1], format_func=lambda x: "Firma" if x==1 else "Osoba prywatna")
     
-    # Dodatkowe parametry z Kroku VI (jeśli są w modelu)
+    # Dodatkowe parametry z Kroku VI 
     bud_rodzaj = st.selectbox("Rodzaj budynku", ["Wielorodzinny", "Jednorodzinny", "Inny"])
     nier_prawo = st.selectbox("Prawo", ["Własność", "Użytkowanie wieczyste"])
     
