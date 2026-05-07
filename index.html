@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kalkulator Nieruchomości 2026</title>
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; display: flex; height: 100vh; background: #f4f4f9; }
+        #sidebar { width: 350px; background: #fff; padding: 20px; box-shadow: 2px 0 5px rgba(0,0,0,0.1); overflow-y: auto; }
+        #main { flex-grow: 1; display: flex; flex-direction: column; }
+        #map { flex-grow: 1; width: 100%; }
+        .input-group { margin-bottom: 15px; }
+        label { display: block; font-weight: bold; margin-bottom: 5px; }
+        input, select, button { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        button:hover { background: #0056b3; }
+        .result-box { background: #e7f3ff; padding: 15px; border-radius: 5px; margin-top: 20px; text-align: center; }
+        #history { margin-top: 20px; font-size: 0.9em; }
+        .history-item { border-bottom: 1px solid #eee; padding: 5px 0; }
+    </style>
+</head>
+<body>
+
+<div id="sidebar">
+    <h2>🏠 Wycena 2026</h2>
+    <div class="input-group">
+        <label>Powierzchnia (m²)</label>
+        <input type="number" id="area" value="50" min="15">
+    </div>
+    <div class="input-group">
+        <label>Rynek</label>
+        <select id="market">
+            <option value="1.1">Pierwotny</option>
+            <option value="1.0">Wtórny</option>
+        </select>
+    </div>
+    <div class="input-group">
+        <label>Wybrane współrzędne</label>
+        <input type="text" id="coords" readonly placeholder="Kliknij na mapie">
+    </div>
+    
+    <button onclick="calculatePrice()">🚀 Oblicz wartość</button>
+
+    <div id="result" class="result-box" style="display:none;">
+        <small>Szacowana cena:</small>
+        <h3 id="priceDisplay">0 PLN</h3>
+    </div>
+
+    <div id="history">
+        <strong>Ostatnie wyceny:</strong>
+        <div id="historyList"></div>
+    </div>
+</div>
+
+<div id="main">
+    <div id="map"></div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+    // Inicjalizacja mapy
+    const map = L.map('map').setView([52.2297, 21.0122], 6);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    let selectedLatLng = null;
+    let marker = null;
+
+    map.on('click', function(e) {
+        selectedLatLng = e.latlng;
+        if (marker) { map.removeLayer(marker); }
+        marker = L.marker(selectedLatLng).addTo(map);
+        document.getElementById('coords').value = `${selectedLatLng.lat.toFixed(4)}, ${selectedLatLng.lng.toFixed(4)}`;
+    });
+
+    function calculatePrice() {
+        const area = document.getElementById('area').value;
+        const marketMultiplier = document.getElementById('market').value;
+        
+        if (!selectedLatLng) {
+            alert("Proszę najpierw wybrać lokalizację na mapie!");
+            return;
+        }
+
+        // Uproszczony "Model" - w wersji produkcyjnej tutaj wywołujesz API lub ONNX
+        // Symulujemy wpływ lokalizacji (im bliżej centrum Warszawy, tym drożej)
+        const distToWarsaw = Math.sqrt(Math.pow(selectedLatLng.lat - 52.22, 2) + Math.pow(selectedLatLng.lng - 21.01, 2));
+        const basePrice = 12000; 
+        const locationBonus = Math.max(0, 8000 - (distToWarsaw * 5000));
+        
+        const finalPrice = area * (basePrice + locationBonus) * marketMultiplier;
+
+        // Wyświetlanie wyniku
+        document.getElementById('result').style.display = 'block';
+        document.getElementById('priceDisplay').innerText = new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(finalPrice);
+
+        // Dodanie do historii
+        const historyList = document.getElementById('historyList');
+        const item = document.createElement('div');
+        item.className = 'history-item';
+        item.innerHTML = `📍 ${selectedLatLng.lat.toFixed(2)} | ${area}m² | <strong>${Math.round(finalPrice/1000)}k PLN</strong>`;
+        historyList.prepend(item);
+    }
+</script>
+</body>
+</html>
