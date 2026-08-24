@@ -6,10 +6,10 @@ import folium
 from streamlit_folium import st_folium
 from datetime import datetime
 
-# --- KONFIGURACJA STRONY ---
-st.set_page_config(page_title="Kalkulator Nieruchomości 2026", layout="wide")
+# --- PAGE CONFIGURATION ---
+st.set_page_config(page_title="Property Calculator 2026", layout="wide")
 
-# --- ŁADOWANIE MODELU I METADANYCH ---
+# --- LOAD MODEL AND METADATA ---
 @st.cache_resource
 def load_assets():
     model = joblib.load('model.joblib')
@@ -19,32 +19,32 @@ def load_assets():
 try:
     model, meta = load_assets()
 except Exception as e:
-    st.error(f"Błąd ładowania modelu: {e}")
+    st.error(f"Error loading model: {e}")
     st.stop()
 
-# --- INICJALIZACJA HISTORII W SESSION STATE ---
+# --- INITIALIZE HISTORY IN SESSION STATE ---
 if 'history' not in st.session_state:
     st.session_state.history = []
 
-# --- SIDEBAR: PARAMETRY TECHNICZNE ---
+# --- SIDEBAR: TECHNICAL PARAMETERS ---
 with st.sidebar:
-    st.header("⚙️ Parametry mieszkania")
-    powierzchnia = st.number_input("Powierzchnia (m2)", 15.0, 250.0, 50.0)
-    rynek = st.selectbox("Rynek", [0, 1], format_func=lambda x: "Pierwotny" if x==1 else "Wtórny")
-    sprzedajacy = st.selectbox("Sprzedający", [0, 1], format_func=lambda x: "Firma" if x==1 else "Osoba prywatna")
-    
-    # Dodatkowe parametry z Kroku VI 
-    bud_rodzaj = st.selectbox("Rodzaj budynku", ["Wielorodzinny", "Jednorodzinny", "Inny"])
-    nier_prawo = st.selectbox("Prawo", ["Własność", "Użytkowanie wieczyste"])
-    
+    st.header("⚙️ Apartment Parameters")
+    powierzchnia = st.number_input("Area (m2)", 15.0, 250.0, 50.0)
+    rynek = st.selectbox("Market", [0, 1], format_func=lambda x: "Primary" if x==1 else "Secondary")
+    sprzedajacy = st.selectbox("Seller", [0, 1], format_func=lambda x: "Company" if x==1 else "Private individual")
+
+    # Additional parameters from Step VI
+    bud_rodzaj = st.selectbox("Building type", ["Multi-family", "Single-family", "Other"])
+    nier_prawo = st.selectbox("Legal title", ["Ownership", "Perpetual usufruct"])
+
     st.divider()
     rok = 2026
     miesiac = 4
-    teryt = st.text_input("Kod TERYT (opcjonalnie)", "0264011")
+    teryt = st.text_input("TERYT code (optional)", "0264011")
 
-# --- GŁÓWNY PANEL: MAPA ---
-st.title("🏠 Inteligentna Wycena Nieruchomości")
-st.subheader("Kliknij na mapie, aby wybrać lokalizację")
+# --- MAIN PANEL: MAP ---
+st.title("🏠 Smart Property Valuation")
+st.subheader("Click on the map to select a location")
 
 col_map, col_res = st.columns([2, 1])
 
@@ -54,17 +54,17 @@ with col_map:
     m.add_child(folium.LatLngPopup())
     map_data = st_folium(m, height=450, use_container_width=True)
 
-    lat, lon = 52.2297, 21.0122 # domyślne
+    lat, lon = 52.2297, 21.0122 # default
     if map_data and map_data['last_clicked']:
         lat = map_data['last_clicked']['lat']
         lon = map_data['last_clicked']['lng']
-        st.success(f"Wybrano lokalizację: {lat:.4f}, {lon:.4f}")
+        st.success(f"Location selected: {lat:.4f}, {lon:.4f}")
 
-# --- PREDYKCJA ---
+# --- PREDICTION ---
 with col_res:
-    st.write("### Twoja Wycena")
-    if st.button("🚀 Oblicz wartość", use_container_width=True):
-        # Budowanie słownika z danymi wejściowymi
+    st.write("### Your Valuation")
+    if st.button("🚀 Calculate value", use_container_width=True):
+        # Build a dictionary with the input data
         raw_data = {
             'bud_pow_uzyt': powierzchnia,
             'RynekPierwotny': rynek,
@@ -78,59 +78,59 @@ with col_res:
             'nier_prawo': nier_prawo
         }
         
-        # Filtrujemy tylko te cechy, których faktycznie wymaga model
+        # Keep only the features the model actually requires
         input_dict = {k: [v] for k, v in raw_data.items() if k in meta['features']}
         input_df = pd.DataFrame(input_dict)
-        
-        # Konwersja na kategorie (jeśli model tego wymaga)
+
+        # Convert to category dtype (if the model requires it)
         for col in input_df.columns:
             if col in ['bud_rodzaj', 'nier_prawo', 'wojewodztwo', 'typ_gminy']:
                 input_df[col] = input_df[col].astype('category')
 
         prediction = model.predict(input_df)[0]
-        
-        # Zapis do historii
+
+        # Save to history
         calc_entry = {
-            "Czas": datetime.now().strftime("%H:%M:%S"),
-            "Lokalizacja": f"{lat:.2f}, {lon:.2f}",
-            "Metraż": powierzchnia,
-            "Cena": round(prediction, 2)
+            "Time": datetime.now().strftime("%H:%M:%S"),
+            "Location": f"{lat:.2f}, {lon:.2f}",
+            "Area": powierzchnia,
+            "Price": round(prediction, 2)
         }
         st.session_state.history.insert(0, calc_entry)
-        
-        st.metric("Szacowana Cena", f"{prediction:,.2f} PLN")
-        st.caption("Mediana błędu modelu: 22,000 PLN")
 
-# --- SEKCIJA PORÓWNAWCZA I HISTORIA ---
+        st.metric("Estimated Price", f"{prediction:,.2f} PLN")
+        st.caption("Model error median: 22,000 PLN")
+
+# --- HISTORY AND COMPARISON SECTION ---
 st.divider()
-st.header("📊 Historia i Porównanie")
+st.header("📊 History and Comparison")
 
 if st.session_state.history:
     df_hist = pd.DataFrame(st.session_state.history)
-    
-    tab1, tab2 = st.tabs(["🕒 Historia kalkulacji", "⚖️ Porównywarka"])
-    
+
+    tab1, tab2 = st.tabs(["🕒 Calculation history", "⚖️ Comparison"])
+
     with tab1:
         st.table(df_hist)
-        if st.button("Wyczyść historię"):
+        if st.button("Clear history"):
             st.session_state.history = []
             st.rerun()
-            
+
     with tab2:
         if len(st.session_state.history) >= 2:
-            st.write("Porównanie dwóch ostatnich wycen:")
+            st.write("Comparison of the last two valuations:")
             c1, c2 = st.columns(2)
             h1 = st.session_state.history[0]
             h2 = st.session_state.history[1]
-            
-            c1.metric(f"Wycena A ({h1['Lokalizacja']})", f"{h1['Cena']:,} PLN", 
-                      delta=round(h1['Cena'] - h2['Cena'], 2))
-            c2.metric(f"Wycena B ({h2['Lokalizacja']})", f"{h2['Cena']:,} PLN", 
-                      delta=round(h2['Cena'] - h1['Cena'], 2))
-            
-            # Wykres słupkowy porównawczy
-            st.bar_chart(df_hist.head(5).set_index('Lokalizacja')['Cena'])
+
+            c1.metric(f"Valuation A ({h1['Location']})", f"{h1['Price']:,} PLN",
+                      delta=round(h1['Price'] - h2['Price'], 2))
+            c2.metric(f"Valuation B ({h2['Location']})", f"{h2['Price']:,} PLN",
+                      delta=round(h2['Price'] - h1['Price'], 2))
+
+            # Comparison bar chart
+            st.bar_chart(df_hist.head(5).set_index('Location')['Price'])
         else:
-            st.info("Zrób co najmniej dwie wyceny, aby odblokować porównywarkę.")
+            st.info("Make at least two valuations to unlock the comparison tool.")
 else:
-    st.info("Brak historii. Wykonaj pierwszą kalkulację, aby zobaczyć dane.")
+    st.info("No history yet. Run your first calculation to see data here.")
